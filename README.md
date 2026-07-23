@@ -21,7 +21,7 @@ A lightweight, native macOS live wallpaper app. Play videos (up to 6K) and GIFs 
 Requires macOS 13+ and Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/LiveWall.git
+git clone https://github.com/XanderSchmitz/LiveWall.git
 cd LiveWall
 ./build.sh
 open build/LiveWall.app          # or: cp -r build/LiveWall.app /Applications/
