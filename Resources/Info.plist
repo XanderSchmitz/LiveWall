@@ -24,5 +24,9 @@
     <true/>
     <key>NSSupportsAutomaticGraphicsSwitching</key>
     <true/>
+    <key>NSAppSleepDisabled</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <false/>
 </dict>
 </plist>

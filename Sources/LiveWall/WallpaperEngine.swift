@@ -23,10 +23,10 @@ final class WallpaperWindow: NSWindow {
 final class ScreenRenderer {
     let window: WallpaperWindow
     let screenKey: String
-    private var player: AVQueuePlayer?
-    private var looper: AVPlayerLooper?
+    private var player: AVPlayer?
     private var playerLayer: AVPlayerLayer?
     private var gifLayer: CALayer?
+    private var loopObserver: NSObjectProtocol?
     private(set) var current: Wallpaper?
 
     init(screen: NSScreen) {
@@ -61,18 +61,31 @@ final class ScreenRenderer {
 
     private func showVideo(_ wallpaper: Wallpaper, settings: Settings) {
         let item = AVPlayerItem(url: wallpaper.url)
-        let queue = AVQueuePlayer()
-        queue.isMuted = settings.muted
-        looper = AVPlayerLooper(player: queue, templateItem: item)
+        let avPlayer = AVPlayer(playerItem: item)
+        avPlayer.isMuted = settings.muted
+        avPlayer.actionAtItemEnd = .none          // don't let it stop at the end — we loop manually
+        avPlayer.automaticallyWaitsToMinimizeStalling = false
 
-        let layer = AVPlayerLayer(player: queue)
+        // Manual seek-to-zero loop: more reliable for a single always-looping item
+        // than AVQueuePlayer/AVPlayerLooper, which can silently fail to re-queue.
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: item,
+            queue: .main
+        ) { [weak avPlayer] _ in
+            avPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
+                avPlayer?.play()
+            }
+        }
+
+        let layer = AVPlayerLayer(player: avPlayer)
         layer.frame = window.contentView?.bounds ?? .zero
         layer.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
         window.contentView?.layer?.addSublayer(layer)
 
-        player = queue
+        player = avPlayer
         playerLayer = layer
-        queue.play()
+        avPlayer.play()
     }
 
     private func showGIF(_ wallpaper: Wallpaper) {
@@ -111,7 +124,8 @@ final class ScreenRenderer {
 
     func clear() {
         player?.pause()
-        looper = nil
+        if let loopObserver { NotificationCenter.default.removeObserver(loopObserver) }
+        loopObserver = nil
         player = nil
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil

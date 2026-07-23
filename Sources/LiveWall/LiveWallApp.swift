@@ -15,8 +15,17 @@ enum LiveWallMain {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var galleryWindow: NSWindow?
+    private var keepAliveActivity: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Opt the whole process out of App Nap / idle throttling. Without this, macOS
+        // can throttle background accessory apps once they're not frontmost and playing
+        // no audio, which stalls video playback instead of letting it loop continuously.
+        keepAliveActivity = ProcessInfo.processInfo.beginActivity(
+            options: [.userInitiated, .idleSystemSleepDisabled, .suddenTerminationDisabled, .automaticTerminationDisabled],
+            reason: "LiveWall live wallpaper playback"
+        )
+
         setUpStatusItem()
         WallpaperEngine.shared.start()
         PowerMonitor.shared.start()
