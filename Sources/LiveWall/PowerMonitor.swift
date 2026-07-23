@@ -51,13 +51,18 @@ final class PowerMonitor {
         return false
     }
 
-    /// Heuristic: true if a normal app window fully covers a screen (fullscreen app in front).
+    /// Heuristic: true only if the FRONTMOST (focused) app has a window fully covering a screen.
+    /// Only the frontmost app's windows count — a maximized window sitting in the background
+    /// must not trigger a pause, since it isn't actually hiding the desktop from the user.
     static func desktopIsCovered() -> Bool {
+        guard let frontPID = NSWorkspace.shared.frontmostApplication?.processIdentifier,
+              frontPID != ProcessInfo.processInfo.processIdentifier
+        else { return false }
+
         guard let windows = CGWindowListCopyWindowInfo(
             [.optionOnScreenOnly, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]]
         else { return false }
 
-        let myPID = ProcessInfo.processInfo.processIdentifier
         let screenFrames = NSScreen.screens.map { screen -> CGRect in
             // CGWindowList uses top-left origin; flip from AppKit coords
             let primaryHeight = NSScreen.screens[0].frame.maxY
@@ -70,7 +75,7 @@ final class PowerMonitor {
 
         for win in windows {
             guard let layer = win[kCGWindowLayer as String] as? Int, layer == 0,
-                  let pid = win[kCGWindowOwnerPID as String] as? Int32, pid != myPID,
+                  let pid = win[kCGWindowOwnerPID as String] as? Int32, pid == frontPID,
                   let boundsDict = win[kCGWindowBounds as String] as? [String: CGFloat]
             else { continue }
             let bounds = CGRect(x: boundsDict["X"] ?? 0, y: boundsDict["Y"] ?? 0,
