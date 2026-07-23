@@ -58,9 +58,10 @@ final class PowerMonitor {
         else { return false }
 
         let myPID = ProcessInfo.processInfo.processIdentifier
-        let screenFrames = NSScreen.screens.map { frame -> CGRect in
+        let screenFrames = NSScreen.screens.map { screen -> CGRect in
             // CGWindowList uses top-left origin; flip from AppKit coords
             let primaryHeight = NSScreen.screens[0].frame.maxY
+            let frame = screen.frame
             return CGRect(x: frame.origin.x,
                           y: primaryHeight - frame.maxY,
                           width: frame.width,

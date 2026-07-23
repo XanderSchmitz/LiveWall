@@ -127,7 +127,7 @@ struct GalleryView: View {
         let panel = NSOpenPanel()
         panel.allowsMultipleSelection = true
         panel.canChooseDirectories = false
-        panel.allowedContentTypes = [.movie, .video, .mpeg4Movie, .quickTimeMovie, .gif, .avi]
+        panel.allowedContentTypes = Library.supportedExtensions.compactMap { UTType(filenameExtension: $0) }
         panel.begin { response in
             guard response == .OK else { return }
             for url in panel.urls { library.importFile(at: url) }
