@@ -1,4 +1,4 @@
-# LiveWall 🖥️✨
+# LiveWall
 
 A lightweight, native macOS live wallpaper app. Play videos (up to 6K) and GIFs as your desktop wallpaper — behind your icons, across all your displays.
 
