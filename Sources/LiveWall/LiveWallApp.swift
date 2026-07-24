@@ -21,8 +21,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Opt the whole process out of App Nap / idle throttling. Without this, macOS
         // can throttle background accessory apps once they're not frontmost and playing
         // no audio, which stalls video playback instead of letting it loop continuously.
+        // Note: allows idle *system* sleep — a wallpaper must never keep the Mac awake.
         keepAliveActivity = ProcessInfo.processInfo.beginActivity(
-            options: [.userInitiated, .idleSystemSleepDisabled, .suddenTerminationDisabled, .automaticTerminationDisabled],
+            options: [.userInitiatedAllowingIdleSystemSleep, .suddenTerminationDisabled, .automaticTerminationDisabled],
             reason: "LiveWall live wallpaper playback"
         )
 

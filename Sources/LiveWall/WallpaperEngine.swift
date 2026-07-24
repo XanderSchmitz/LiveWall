@@ -23,10 +23,10 @@ final class WallpaperWindow: NSWindow {
 final class ScreenRenderer {
     let window: WallpaperWindow
     let screenKey: String
-    private var player: AVPlayer?
+    private var player: AVQueuePlayer?
+    private var looper: AVPlayerLooper?   // must stay retained — looping stops silently if this deallocates
     private var playerLayer: AVPlayerLayer?
     private var gifLayer: CALayer?
-    private var loopObserver: NSObjectProtocol?
     private(set) var current: Wallpaper?
 
     init(screen: NSScreen) {
@@ -61,22 +61,14 @@ final class ScreenRenderer {
 
     private func showVideo(_ wallpaper: Wallpaper, settings: Settings) {
         let item = AVPlayerItem(url: wallpaper.url)
-        let avPlayer = AVPlayer(playerItem: item)
+        let avPlayer = AVQueuePlayer()
         avPlayer.isMuted = settings.muted
-        avPlayer.actionAtItemEnd = .none          // don't let it stop at the end — we loop manually
         avPlayer.automaticallyWaitsToMinimizeStalling = false
+        avPlayer.preventsDisplaySleepDuringVideoPlayback = false   // a wallpaper must not keep the screen awake
 
-        // Manual seek-to-zero loop: more reliable for a single always-looping item
-        // than AVQueuePlayer/AVPlayerLooper, which can silently fail to re-queue.
-        loopObserver = NotificationCenter.default.addObserver(
-            forName: .AVPlayerItemDidPlayToEndTime,
-            object: item,
-            queue: .main
-        ) { [weak avPlayer] _ in
-            avPlayer?.seek(to: .zero, toleranceBefore: .zero, toleranceAfter: .zero) { _ in
-                avPlayer?.play()
-            }
-        }
+        // AVPlayerLooper pre-queues the next copy of the item, so the loop is gapless —
+        // no freeze on the last frame while seeking back to zero.
+        looper = AVPlayerLooper(player: avPlayer, templateItem: item)
 
         let layer = AVPlayerLayer(player: avPlayer)
         layer.frame = window.contentView?.bounds ?? .zero
@@ -122,10 +114,25 @@ final class ScreenRenderer {
         gifLayer?.speed = 1
     }
 
+    /// Watchdog: recover playback if it ever stalled or the player errored
+    /// (display sleep/wake, decoder hiccup, media services reset…).
+    func ensurePlaying(settings: Settings) {
+        guard let wallpaper = current, !wallpaper.isGIF, let player else { return }
+        let failed = player.currentItem?.status == .failed
+            || player.error != nil
+            || looper?.status == .failed
+        if failed {
+            clear()
+            show(wallpaper, settings: settings)
+        } else if player.rate == 0 {
+            player.play()
+        }
+    }
+
     func clear() {
         player?.pause()
-        if let loopObserver { NotificationCenter.default.removeObserver(loopObserver) }
-        loopObserver = nil
+        looper?.disableLooping()
+        looper = nil
         player = nil
         playerLayer?.removeFromSuperlayer()
         playerLayer = nil
@@ -195,6 +202,7 @@ final class WallpaperEngine: ObservableObject {
     private(set) var pausedByPolicy = false   // paused automatically (battery/fullscreen)
     private var renderers: [String: ScreenRenderer] = [:]
     private var shuffleTimer: Timer?
+    private var watchdogTimer: Timer?
 
     private var library: Library { .shared }
 
@@ -202,12 +210,34 @@ final class WallpaperEngine: ObservableObject {
         NotificationCenter.default.addObserver(
             self, selector: #selector(screensChanged),
             name: NSApplication.didChangeScreenParametersNotification, object: nil)
+        // AVPlayer can come back from sleep with rate 0; kick playback right away
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(didWake),
+            name: NSWorkspace.didWakeNotification, object: nil)
+    }
+
+    @objc private func didWake() {
+        guard !isPaused else { return }
+        let settings = library.settings
+        renderers.values.forEach { $0.ensurePlaying(settings: settings) }
     }
 
     func start() {
         rebuildRenderers()
         refresh()
         restartShuffleTimer()
+        startWatchdog()
+    }
+
+    /// Playback can silently stop (display sleep/wake, decoder errors); check
+    /// periodically and kick it back into gear unless we're deliberately paused.
+    private func startWatchdog() {
+        watchdogTimer?.invalidate()
+        watchdogTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            guard let self, !self.isPaused else { return }
+            let settings = self.library.settings
+            self.renderers.values.forEach { $0.ensurePlaying(settings: settings) }
+        }
     }
 
     @objc private func screensChanged() {
