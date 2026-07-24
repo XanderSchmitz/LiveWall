@@ -2,7 +2,7 @@
 
 A lightweight, native macOS live wallpaper app. Play videos (up to 6K) and GIFs as your desktop wallpaper — behind your icons, across all your displays.
 
-![platform](https://img.shields.io/badge/platform-macOS%2013%2B-blue) ![swift](https://img.shields.io/badge/Swift-5.9-orange) ![license](https://img.shields.io/badge/license-MIT-green)
+![platform](https://img.shields.io/badge/platform-macOS%2013%2B-blue) ![swift](https://img.shields.io/badge/Swift-5.9-orange) ![license](https://img.shields.io/badge/license-PolyForm%20Noncommercial%201.0.0-green)
 
 ## Features
 
@@ -47,4 +47,4 @@ LiveWall creates a borderless window per display at the desktop window level (`k
 
 ## License
 
-MIT
+[PolyForm Noncommercial License 1.0.0](LICENSE) — free to use, modify, and share for any noncommercial purpose. Selling this software, or bundling it into a paid product or service, is not permitted.
