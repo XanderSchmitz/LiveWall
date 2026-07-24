@@ -15,7 +15,23 @@ final class PowerMonitor {
         timer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             self?.evaluate()
         }
+        // React immediately when the user switches apps or spaces instead of
+        // waiting for the next timer tick — makes fullscreen pause/resume feel instant.
+        let center = NSWorkspace.shared.notificationCenter
+        for name in [NSWorkspace.didActivateApplicationNotification,
+                     NSWorkspace.activeSpaceDidChangeNotification] {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                self?.activityChanged()
+            }
+        }
         evaluate()
+    }
+
+    private func activityChanged() {
+        // Let the window layout settle (fullscreen transitions animate) before checking
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
+            self?.evaluate()
+        }
     }
 
     private func evaluate() {

@@ -34,7 +34,7 @@ struct Settings: Codable {
     var shuffleEnabled: Bool = false
     var shuffleMinutes: Int = 30
     var pauseOnBattery: Bool = false
-    var pauseWhenCovered: Bool = false
+    var pauseWhenCovered: Bool = true
     var launchAtLogin: Bool = false
     var mirrorDisplays: Bool = true                 // same wallpaper on all screens
     var activeWallpaperID: UUID? = nil              // when mirroring
