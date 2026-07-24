@@ -1,0 +1,41 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8E5CF7"/>
+      <stop offset="55%" stop-color="#6C63F5"/>
+      <stop offset="100%" stop-color="#3E8BF0"/>
+    </linearGradient>
+    <linearGradient id="screenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#EAF0FF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- macOS squircle background -->
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1024" height="1024" rx="228" ry="228" fill="url(#glow)"/>
+
+  <!-- desktop monitor -->
+  <rect x="182" y="268" width="660" height="440" rx="44" ry="44" fill="url(#screenGrad)"/>
+  <rect x="182" y="268" width="660" height="440" rx="44" ry="44" fill="none" stroke="#3E4FE0" stroke-opacity="0.08" stroke-width="6"/>
+
+  <!-- inner "video frame" -->
+  <rect x="222" y="308" width="580" height="360" rx="26" ry="26" fill="#1B1640"/>
+
+  <!-- play glyph -->
+  <path d="M 462 420 L 462 556 L 578 488 Z" fill="#FFFFFF"/>
+
+  <!-- monitor stand -->
+  <rect x="472" y="708" width="80" height="54" rx="14" fill="url(#screenGrad)"/>
+  <rect x="392" y="758" width="240" height="34" rx="17" fill="url(#screenGrad)"/>
+
+  <!-- sparkle accents -->
+  <g fill="#FFFFFF">
+    <path d="M 792 208 L 806 246 L 844 260 L 806 274 L 792 312 L 778 274 L 740 260 L 778 246 Z"/>
+    <path d="M 214 178 L 222 200 L 244 208 L 222 216 L 214 238 L 206 216 L 184 208 L 206 200 Z" opacity="0.85"/>
+  </g>
+</svg>

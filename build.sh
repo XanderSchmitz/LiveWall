@@ -12,6 +12,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
 cp .build/release/LiveWall "$APP/Contents/MacOS/LiveWall"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 # Ad-hoc codesign so macOS lets it run locally
 codesign --force --deep --sign - "$APP"
