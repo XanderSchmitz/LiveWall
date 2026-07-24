@@ -199,7 +199,8 @@ final class WallpaperEngine: ObservableObject {
     static let shared = WallpaperEngine()
 
     @Published private(set) var isPaused = false
-    private(set) var pausedByPolicy = false   // paused automatically (battery/fullscreen)
+    private(set) var pausedByPolicy = false     // paused automatically (battery/fullscreen)
+    private(set) var policyOverridden = false   // user hit Resume while a policy wanted pause — user wins
     private var renderers: [String: ScreenRenderer] = [:]
     private var shuffleTimer: Timer?
     private var watchdogTimer: Timer?
@@ -318,16 +319,22 @@ final class WallpaperEngine: ObservableObject {
     }
 
     func pause(manual: Bool = false) {
-        if !manual { pausedByPolicy = true }
+        pausedByPolicy = !manual
+        if manual { policyOverridden = false }
         isPaused = true
         renderers.values.forEach { $0.pause() }
     }
 
     func resume(manual: Bool = false) {
-        if manual { pausedByPolicy = false }
+        if manual && pausedByPolicy { policyOverridden = true }
+        pausedByPolicy = false
         isPaused = false
         renderers.values.forEach { $0.resume() }
     }
+
+    /// Called by PowerMonitor once its pause condition clears, so the next
+    /// occurrence of the condition is allowed to auto-pause again.
+    func clearPolicyOverride() { policyOverridden = false }
 
     // MARK: Shuffle
 

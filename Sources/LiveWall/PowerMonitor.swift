@@ -30,10 +30,12 @@ final class PowerMonitor {
         }
 
         if shouldPause {
-            if !engine.isPaused { engine.pause() }
+            // Respect a manual Resume: don't re-pause until the condition clears once
+            if !engine.isPaused && !engine.policyOverridden { engine.pause() }
         } else {
+            engine.clearPolicyOverride()
             // Only auto-resume if we were the ones who paused it
-            if engine.isPaused && engine.pausedByPolicy { engine.resume(manual: true) }
+            if engine.isPaused && engine.pausedByPolicy { engine.resume() }
         }
     }
 
