@@ -1,6 +1,7 @@
 import AppKit
 import AVFoundation
 import ImageIO
+import CoreImage
 
 // MARK: - Desktop-level window
 
@@ -27,6 +28,7 @@ final class ScreenRenderer {
     private var looper: AVPlayerLooper?   // must stay retained — looping stops silently if this deallocates
     private var playerLayer: AVPlayerLayer?
     private var gifLayer: CALayer?
+    private var dimLayer: CALayer?
     private(set) var current: Wallpaper?
 
     init(screen: NSScreen) {
@@ -45,7 +47,8 @@ final class ScreenRenderer {
     }
 
     func show(_ wallpaper: Wallpaper, settings: Settings) {
-        guard wallpaper != current else {
+        guard wallpaper.id != current?.id else {
+            current = wallpaper   // pick up any per-item edits (volume/dim/blur/tags) without restarting playback
             applySettings(settings)
             return
         }
@@ -56,6 +59,7 @@ final class ScreenRenderer {
         } else {
             showVideo(wallpaper, settings: settings)
         }
+        addDimLayer()
         applySettings(settings)
     }
 
@@ -90,8 +94,21 @@ final class ScreenRenderer {
         gifLayer = layer
     }
 
+    private func addDimLayer() {
+        let dim = CALayer()
+        dim.frame = window.contentView?.bounds ?? .zero
+        dim.autoresizingMask = [.layerWidthSizable, .layerHeightSizable]
+        dim.backgroundColor = NSColor.black.cgColor
+        dim.opacity = 0
+        window.contentView?.layer?.addSublayer(dim)
+        dimLayer = dim
+    }
+
     func applySettings(_ settings: Settings) {
-        player?.isMuted = settings.muted
+        let wp = current
+        player?.volume = Float(wp?.volume ?? 1.0)
+        player?.isMuted = wp?.muteOverride ?? settings.muted
+
         let gravity: CALayerContentsGravity
         let videoGravity: AVLayerVideoGravity
         switch settings.scaling {
@@ -102,6 +119,26 @@ final class ScreenRenderer {
         playerLayer?.videoGravity = videoGravity
         gifLayer?.contentsGravity = gravity
         gifLayer?.masksToBounds = true
+
+        dimLayer?.opacity = Float(wp?.dimOpacity ?? 0)
+        applyBlur(wp?.blurRadius ?? 0)
+    }
+
+    /// macOS-Tahoe-style frosted background: soft Gaussian blur on the wallpaper layer.
+    /// Blurring reveals transparent fringe at the edges, so the layer is scaled up slightly
+    /// to compensate — same trick system wallpaper blur uses.
+    private func applyBlur(_ radius: Double) {
+        var filters: [CIFilter]? = nil
+        if radius > 0, let blur = CIFilter(name: "CIGaussianBlur") {
+            blur.setValue(radius, forKey: kCIInputRadiusKey)
+            filters = [blur]
+        }
+        let scale: CGFloat = radius > 0 ? 1 + CGFloat(radius) / 400 : 1
+        let layers: [CALayer?] = [playerLayer, gifLayer]
+        for layer in layers.compactMap({ $0 }) {
+            layer.filters = filters
+            layer.transform = CATransform3DMakeScale(scale, scale, 1)
+        }
     }
 
     func pause() {
@@ -138,6 +175,8 @@ final class ScreenRenderer {
         playerLayer = nil
         gifLayer?.removeFromSuperlayer()
         gifLayer = nil
+        dimLayer?.removeFromSuperlayer()
+        dimLayer = nil
         current = nil
     }
 
@@ -298,17 +337,20 @@ final class WallpaperEngine: ObservableObject {
     }
 
     func nextWallpaper(random: Bool = false) {
-        let list = library.wallpapers
-        guard !list.isEmpty else { return }
-        if random, list.count > 1 {
-            var pick = list.randomElement()!
-            while pick.id == library.settings.activeWallpaperID, list.count > 1 {
-                pick = list.randomElement()!
+        // Random picks stay within the active shuffle playlist/tag; manual Next always
+        // walks the full library so it's predictable regardless of shuffle settings.
+        let list = random ? library.wallpapers(taggedWith: library.settings.shuffleTag) : library.wallpapers
+        let pool = list.isEmpty ? library.wallpapers : list
+        guard !pool.isEmpty else { return }
+        if random, pool.count > 1 {
+            var pick = pool.randomElement()!
+            while pick.id == library.settings.activeWallpaperID, pool.count > 1 {
+                pick = pool.randomElement()!
             }
             setWallpaper(pick)
         } else {
-            let idx = list.firstIndex { $0.id == library.settings.activeWallpaperID } ?? -1
-            setWallpaper(list[(idx + 1) % list.count])
+            let idx = pool.firstIndex { $0.id == library.settings.activeWallpaperID } ?? -1
+            setWallpaper(pool[(idx + 1) % pool.count])
         }
     }
 

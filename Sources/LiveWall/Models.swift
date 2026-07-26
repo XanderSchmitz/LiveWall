@@ -8,6 +8,11 @@ struct Wallpaper: Identifiable, Codable, Equatable {
     var name: String
     var path: String          // absolute path to the media file
     var isGIF: Bool
+    var tags: [String] = []
+    var volume: Double = 1.0          // 0...1, applied on top of the global mute
+    var muteOverride: Bool? = nil     // nil = follow global mute setting
+    var dimOpacity: Double = 0        // 0...1 black overlay, so busy video doesn't fight desktop icons
+    var blurRadius: Double = 0        // 0...40 Gaussian blur, macOS-Tahoe-style frosted background
 
     var url: URL { URL(fileURLWithPath: path) }
 
@@ -33,12 +38,15 @@ struct Settings: Codable {
     var scaling: ScalingMode = .fill
     var shuffleEnabled: Bool = false
     var shuffleMinutes: Int = 30
+    var shuffleTag: String? = nil                   // nil = shuffle across the whole library
     var pauseOnBattery: Bool = false
     var pauseWhenCovered: Bool = true
     var launchAtLogin: Bool = false
     var mirrorDisplays: Bool = true                 // same wallpaper on all screens
     var activeWallpaperID: UUID? = nil              // when mirroring
     var perScreenWallpaper: [String: UUID] = [:]    // screen key -> wallpaper id
+    var globalHotkeysEnabled: Bool = false
+    var showPerformanceHUD: Bool = false
 }
 
 // MARK: - Library (persistence)
@@ -102,7 +110,7 @@ final class Library: ObservableObject {
 
     /// Import a media file: copies it into the app's media folder.
     @discardableResult
-    func importFile(at url: URL) -> Wallpaper? {
+    func importFile(at url: URL, tags: [String] = []) -> Wallpaper? {
         let ext = url.pathExtension.lowercased()
         guard Library.supportedExtensions.contains(ext) else { return nil }
 
@@ -115,12 +123,14 @@ final class Library: ObservableObject {
             counter += 1
         }
         do {
+            if fm.fileExists(atPath: dest.path) { try fm.removeItem(at: dest) }
             try fm.copyItem(at: url, to: dest)
         } catch {
             NSLog("LiveWall: import failed — \(error.localizedDescription)")
             return nil
         }
-        let wp = Wallpaper(url: dest)
+        var wp = Wallpaper(url: dest)
+        wp.tags = tags
         DispatchQueue.main.async {
             self.wallpapers.append(wp)
             self.save()
@@ -141,8 +151,60 @@ final class Library: ObservableObject {
         WallpaperEngine.shared.refresh()
     }
 
+    func update(_ wallpaper: Wallpaper) {
+        guard let idx = wallpapers.firstIndex(where: { $0.id == wallpaper.id }) else { return }
+        wallpapers[idx] = wallpaper
+        save()
+        WallpaperEngine.shared.refresh()
+    }
+
     func wallpaper(id: UUID?) -> Wallpaper? {
         guard let id else { return nil }
         return wallpapers.first { $0.id == id }
+    }
+
+    // MARK: Tags / playlists
+
+    var allTags: [String] {
+        Array(Set(wallpapers.flatMap(\.tags))).sorted()
+    }
+
+    func wallpapers(taggedWith tag: String?) -> [Wallpaper] {
+        guard let tag else { return wallpapers }
+        return wallpapers.filter { $0.tags.contains(tag) }
+    }
+
+    /// Import a media file downloaded from a URL (e.g. a Pexels/Coverr link).
+    func importFromURL(_ remoteURL: URL, tags: [String] = [], completion: @escaping (Wallpaper?) -> Void) {
+        let task = URLSession.shared.downloadTask(with: remoteURL) { [weak self] tmpURL, response, error in
+            guard let self, let tmpURL, error == nil else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            // Determine an extension: prefer the URL's own, fall back to the response's suggested filename
+            var ext = remoteURL.pathExtension.lowercased()
+            if !Library.supportedExtensions.contains(ext),
+               let suggested = response?.suggestedFilename {
+                ext = (suggested as NSString).pathExtension.lowercased()
+            }
+            guard Library.supportedExtensions.contains(ext) else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            // downloadTask hands us a temp file with no extension; rename so importFile can validate it
+            let renamed = tmpURL.deletingLastPathComponent()
+                .appendingPathComponent(UUID().uuidString)
+                .appendingPathExtension(ext)
+            do {
+                try self.fm.moveItem(at: tmpURL, to: renamed)
+            } catch {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            let wp = self.importFile(at: renamed, tags: tags)
+            try? self.fm.removeItem(at: renamed)
+            DispatchQueue.main.async { completion(wp) }
+        }
+        task.resume()
     }
 }

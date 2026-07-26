@@ -34,6 +34,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         setUpStatusItem()
         WallpaperEngine.shared.start()
         PowerMonitor.shared.start()
+        HotkeyManager.shared.start()
+        PerformanceHUDController.shared.setVisible(Library.shared.settings.showPerformanceHUD)
 
         // Pre-warm thumbnails
         for wp in Library.shared.wallpapers {
@@ -82,6 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         menu.addItem(.separator())
 
+        let hud = NSMenuItem(title: "Performance HUD", action: #selector(toggleHUD), keyEquivalent: "")
+        hud.target = self
+        hud.tag = 101
+        menu.addItem(hud)
+
+        menu.addItem(.separator())
+
         let checkForUpdates = NSMenuItem(
             title: "Check for Updates…",
             action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
@@ -101,6 +110,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func togglePause() { WallpaperEngine.shared.togglePause() }
     @objc private func nextWallpaper() { WallpaperEngine.shared.nextWallpaper() }
     @objc private func randomWallpaper() { WallpaperEngine.shared.nextWallpaper(random: true) }
+    @objc private func toggleHUD() {
+        let newValue = !Library.shared.settings.showPerformanceHUD
+        Library.shared.settings.showPerformanceHUD = newValue
+        PerformanceHUDController.shared.setVisible(newValue)
+    }
 
     // MARK: Gallery window
 
@@ -131,6 +145,9 @@ extension AppDelegate: NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         if let pauseItem = menu.item(withTag: 100) {
             pauseItem.title = WallpaperEngine.shared.isPaused ? "Resume" : "Pause"
+        }
+        if let hudItem = menu.item(withTag: 101) {
+            hudItem.state = Library.shared.settings.showPerformanceHUD ? .on : .off
         }
     }
 }

@@ -16,6 +16,11 @@ A lightweight, native macOS live wallpaper app. Play videos (up to 6K) and GIFs 
 - **Launch at login** — set-and-forget.
 - **Menu bar control** — pause/resume, next, random, gallery — all one click away.
 - **Auto-updates** — checks for new versions in the background and lets you install signed updates via [Sparkle](https://sparkle-project.org).
+- **Playlists** — tag wallpapers into collections (e.g. "Nature", "Abstract") and scope shuffle to just one.
+- **Per-wallpaper controls** — volume, a mute override, a dim overlay so busy video doesn't fight your icons, and a macOS-Tahoe-style frosted blur.
+- **Global keyboard shortcuts** — ⌥⇧N / ⌥⇧P for next/pause from anywhere, no Accessibility permission needed.
+- **Import from URL** — paste a direct link to a video or GIF instead of downloading it first.
+- **Performance HUD** — a small overlay with LiveWall's real, measured CPU and memory usage and the active wallpaper's resolution.
 
 ## Install / Build
 
@@ -37,10 +42,13 @@ First launch opens the gallery. Drop in some videos or GIFs, click one, done.
 | Action | Where |
 |---|---|
 | Add wallpapers | Drag files into the gallery, or **Add Wallpapers** |
+| Import from a link | Sidebar → **Import from URL…** |
 | Set wallpaper | Hover a card → **Set Wallpaper** |
+| Edit a wallpaper (tags, volume, dim, blur) | Card → `⋯` menu → **Edit…**, or double-click the card |
 | Per-display wallpaper | Card → `⋯` menu → **Set on display** |
-| Pause / next / random | Menu bar icon (✨) |
-| Shuffle, mute, scaling, battery saver, login item | Gallery → **Settings** |
+| Filter by playlist | Sidebar → tag name |
+| Pause / next / random | Menu bar icon (✨), or ⌥⇧P / ⌥⇧N if global shortcuts are on |
+| Shuffle, mute, scaling, battery saver, login item, shortcuts, HUD | Gallery → **Settings** |
 
 ## How it works
 
