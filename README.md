@@ -15,6 +15,7 @@ A lightweight, native macOS live wallpaper app. Play videos (up to 6K) and GIFs 
 - **Battery saver** — auto-pauses on battery power or when a fullscreen app covers the desktop.
 - **Launch at login** — set-and-forget.
 - **Menu bar control** — pause/resume, next, random, gallery — all one click away.
+- **Auto-updates** — checks for new versions in the background and lets you install signed updates via [Sparkle](https://sparkle-project.org).
 
 ## Install / Build
 
@@ -44,6 +45,16 @@ First launch opens the gallery. Drop in some videos or GIFs, click one, done.
 ## How it works
 
 LiveWall creates a borderless window per display at the desktop window level (`kCGDesktopWindowLevel`) — the same layer macOS draws wallpaper on — so video plays *behind* your desktop icons. Videos loop seamlessly via `AVPlayerLooper`; GIFs are decoded with ImageIO and animated on a `CALayer` keyframe animation.
+
+## Releasing an update
+
+Updates ship through [Sparkle](https://sparkle-project.org) and are verified with an EdDSA signature before install, so only builds signed with the project's private key (kept in the maintainer's login keychain, generated with Sparkle's `generate_keys`) will be accepted by installs in the wild.
+
+1. Bump `CFBundleVersion` (integer, always increases) and `CFBundleShortVersionString` in [Resources/Info.plist](Resources/Info.plist).
+2. `./build.sh`, then zip the app: `ditto -c -k --keepParent build/LiveWall.app LiveWall-X.Y.Z.zip`.
+3. Sign it: `sign_update LiveWall-X.Y.Z.zip` (from the [Sparkle release download](https://github.com/sparkle-project/Sparkle/releases)) — copy the `sparkle:edSignature` and `length` it prints.
+4. `gh release create vX.Y.Z LiveWall-X.Y.Z.zip --title "LiveWall X.Y.Z" --notes "…"`.
+5. Add a new `<item>` to the top of [appcast.xml](appcast.xml) with the new version, signature, and the release's download URL, then commit and push to `main` — the app polls `appcast.xml` on `main` directly.
 
 ## License
 

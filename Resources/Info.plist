@@ -9,9 +9,9 @@
     <key>CFBundleIdentifier</key>
     <string>com.xmanproductions.livewall</string>
     <key>CFBundleVersion</key>
-    <string>1.0.0</string>
+    <string>2</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.0.0</string>
+    <string>1.1.0</string>
     <key>CFBundleExecutable</key>
     <string>LiveWall</string>
     <key>CFBundleIconFile</key>
@@ -29,6 +29,16 @@
     <key>NSAppSleepDisabled</key>
     <true/>
     <key>NSSupportsSuddenTermination</key>
+    <false/>
+    <key>SUFeedURL</key>
+    <string>https://raw.githubusercontent.com/XanderSchmitz/LiveWall/main/appcast.xml</string>
+    <key>SUPublicEDKey</key>
+    <string>Ds8bVw37JXYF92j+oQEM3i7wimT7W9t7lhJDGxCMUJI=</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUScheduledCheckInterval</key>
+    <integer>86400</integer>
+    <key>SUAllowsAutomaticUpdates</key>
     <false/>
 </dict>
 </plist>

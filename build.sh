@@ -8,13 +8,19 @@ swift build -c release 2>&1 | tail -5
 
 APP="build/LiveWall.app"
 rm -rf "$APP"
-mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources" "$APP/Contents/Frameworks"
 
 cp .build/release/LiveWall "$APP/Contents/MacOS/LiveWall"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
-# Ad-hoc codesign so macOS lets it run locally
+# Embed Sparkle.framework (auto-updates) and point the binary at it
+cp -R .build/release/Sparkle.framework "$APP/Contents/Frameworks/Sparkle.framework"
+install_name_tool -add_rpath "@executable_path/../Frameworks" "$APP/Contents/MacOS/LiveWall"
+
+# Ad-hoc codesign so macOS lets it run locally — sign the embedded framework
+# (and its nested XPC services/helper) before the outer app bundle.
+codesign --force --deep --sign - "$APP/Contents/Frameworks/Sparkle.framework"
 codesign --force --deep --sign - "$APP"
 
 echo "✓ Built $APP"

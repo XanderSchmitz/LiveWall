@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import Sparkle
 
 @main
 enum LiveWallMain {
@@ -16,6 +17,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var galleryWindow: NSWindow?
     private var keepAliveActivity: NSObjectProtocol?
+    private lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Opt the whole process out of App Nap / idle throttling. Without this, macOS
@@ -27,6 +30,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             reason: "LiveWall live wallpaper playback"
         )
 
+        _ = updaterController   // force lazy init so the updater starts checking on schedule
         setUpStatusItem()
         WallpaperEngine.shared.start()
         PowerMonitor.shared.start()
@@ -75,6 +79,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let shuffle = NSMenuItem(title: "Random Wallpaper", action: #selector(randomWallpaper), keyEquivalent: "")
         shuffle.target = self
         menu.addItem(shuffle)
+
+        menu.addItem(.separator())
+
+        let checkForUpdates = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)),
+            keyEquivalent: "")
+        checkForUpdates.target = updaterController
+        menu.addItem(checkForUpdates)
 
         menu.addItem(.separator())
 
